@@ -4,11 +4,15 @@ import { useMemo } from 'react';
 import { MeshStandardMaterial, MeshBasicMaterial, Material, Color } from 'three';
 import { useProjectStore } from '../store/useProjectStore';
 import { useViewerStore } from '../store/useViewerStore';
+import VoxelViewer from './VoxelViewer';
 
 export default function ProjectParts() {
-  const parts = useProjectStore(state => state.project?.parts || []);
+  const project = useProjectStore(state => state.project);
+  const parts = project?.parts || [];
   const viewMode = useViewerStore(state => state.viewMode);
   const selectedPartId = useViewerStore(state => state.selectedPartId);
+  const showStressData = useViewerStore(state => state.showStressData);
+  const stressDataViewMode = useViewerStore(state => state.stressDataViewMode);
 
   const getMaterialForViewMode = useMemo(() => {
     const extractColor = (material: Material | Material[] | undefined): string => {
@@ -72,6 +76,11 @@ export default function ProjectParts() {
           />
         );
       })}
+      
+      {/* Show VoxelViewer only if project has voxel grid, stress data is enabled, and view mode is voxels */}
+      {project?.voxelGrid && showStressData && stressDataViewMode === 'voxels' && (
+        <VoxelViewer voxelGrid={project.voxelGrid} />
+      )}
     </>
   );
 }

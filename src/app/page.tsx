@@ -9,7 +9,6 @@ import ProjectParts from './components/ProjectParts';
 import { loadProjectFile } from './utils/fileLoader';
 import ViewportShadingSelector from "@/app/components/ViewportShadingSelector";
 import {SimpleVoxelGrid} from "@/app/utils/simpleVoxelGrid";
-import VoxelViewer from "@/app/components/VoxelViewer";
 
 export default function Home() {
   const loadProject = useProjectStore(state => state.loadProject);
@@ -103,8 +102,6 @@ export default function Home() {
         >
           <DefaultSceneBackdrop />
           <ProjectParts />
-
-          {project?.voxelGrid && <VoxelViewer voxelGrid={project.voxelGrid}/>}
         </Canvas>
 
         <ViewportShadingSelector/>
