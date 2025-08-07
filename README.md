@@ -47,3 +47,8 @@ You can start editing the page by modifying `app/page.tsx`. The page auto-update
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
+## How to use
+
+1. Drag and drop an obj, stl, or glb onto the viewport
+2. Change viewport shading by selecting one of the three options at the top right of viewport
+3. Press "Validate" on the bottom right to triggure a dummy 'stress' simulation

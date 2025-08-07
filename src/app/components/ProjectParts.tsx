@@ -17,9 +17,14 @@ export default function ProjectParts() {
   const getMaterialForViewMode = (
     originalMaterial: Material | Material[] | undefined, isSelected: boolean, mesh?: Mesh
   ): { material: Material | Material[], geometry?: BufferGeometry } => {
+    const intendsToShowStressData = showStressData && stressDataViewMode === 'vertex_shading';
+    const projectValidityReportDidSucceed = project?.validityReport && project.validityReport.success;
+    const dataAvailable = project?.voxelGrid && mesh;
+
     // If stress data is enabled and in vertex shading mode, use heatmap material
-    if (showStressData && stressDataViewMode === 'vertex_shading' && project?.voxelGrid && mesh) {
+    if (intendsToShowStressData && projectValidityReportDidSucceed && dataAvailable) {
       try {
+        if (!project?.voxelGrid) throw new Error("Voxel Grid is not available");
         const heatmapResult = createHeatmapMaterial(mesh, project.voxelGrid);
         return { material: heatmapResult.material, geometry: heatmapResult.geometry };
       } catch (error) {

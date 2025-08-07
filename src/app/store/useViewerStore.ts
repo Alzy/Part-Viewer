@@ -22,7 +22,7 @@ type ViewerStore = {
 export const useViewerStore = create<ViewerStore>((set) => ({
   viewMode: 'textured',
   selectedPartId: null,
-  showStressData: false,
+  showStressData: true,
   stressDataViewMode: 'vertex_shading',
 
   setViewMode: (mode) => set({ viewMode: mode }),
@@ -37,5 +37,5 @@ export const useViewerStore = create<ViewerStore>((set) => ({
 
   setStressDataViewMode: (mode) => set({ stressDataViewMode: mode }),
 
-  resetStressSettings: () => set({ showStressData: false, stressDataViewMode: 'vertex_shading' }),
+  resetStressSettings: () => set({ showStressData: true, stressDataViewMode: 'vertex_shading' }),
 }));
