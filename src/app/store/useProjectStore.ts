@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import {Matrix4, BufferGeometry, Material} from "three";
+import {SimpleVoxelGrid} from "@/app/utils/simpleVoxelGrid";
 
 type Part = {
   id: string
@@ -20,6 +21,7 @@ type Project = {
   name: string
   parts: Part[]
   validityReport: ValidityReport | null
+  voxelGrid: SimpleVoxelGrid | null
 }
 
 type ProjectStore = {
@@ -29,6 +31,7 @@ type ProjectStore = {
   loadProject: (name: string, parts: Part[]) => void
   updatePartMatrix: (partId: string, newMatrix: Matrix4) => void
   setValidityReport: (report: ValidityReport) => void
+  setVoxelGrid: (voxelGrid: SimpleVoxelGrid) => void
   resetProject: () => void
 }
 
@@ -40,6 +43,7 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
       name,
       parts,
       validityReport: null,
+      voxelGrid: null,
     },
   }),
 
@@ -68,6 +72,14 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
     set((state) => ({
       project: state.project
         ? { ...state.project, validityReport: report }
+        : null,
+    }))
+  },
+
+  setVoxelGrid: (voxelGrid: SimpleVoxelGrid) => {
+    set((state) => ({
+      project: state.project
+        ? {...state.project, voxelGrid: voxelGrid}
         : null,
     }))
   },

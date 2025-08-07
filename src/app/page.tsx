@@ -13,9 +13,9 @@ import VoxelViewer from "@/app/components/VoxelViewer";
 
 export default function Home() {
   const loadProject = useProjectStore(state => state.loadProject);
+  const setVoxelGrid = useProjectStore(state => state.setVoxelGrid);
   const project = useProjectStore(state => state.project);
   const [isLoadingProject, setIsLoadingProject] = useState(false);
-  const [voxelGrid, setVoxelGrid] = useState<SimpleVoxelGrid | null>(null);
 
   const loadDefaultProject = async () => {
     if (isLoadingProject || project) return;
@@ -25,8 +25,8 @@ export default function Home() {
       // Load our default file.
       const loadedProject = await loadProjectFile('/new-project.glb');
       const _voxelGrid = new SimpleVoxelGrid(loadedProject.sceneRoot);
-      setVoxelGrid(_voxelGrid);
       loadProject(loadedProject.name, loadedProject.parts);
+      setVoxelGrid(_voxelGrid);
     } catch (error) {
       console.error('Failed to load default project:', error);
       loadProject('Blank Project', []); // Fallback to blank project on error
@@ -104,7 +104,7 @@ export default function Home() {
           <DefaultSceneBackdrop />
           <ProjectParts />
 
-          {voxelGrid && <VoxelViewer voxelGrid={voxelGrid}/>}
+          {project?.voxelGrid && <VoxelViewer voxelGrid={project.voxelGrid}/>}
         </Canvas>
 
         <ViewportShadingSelector/>
