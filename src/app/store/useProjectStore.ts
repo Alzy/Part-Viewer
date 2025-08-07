@@ -24,19 +24,16 @@ type Project = {
 
 type ProjectStore = {
   project: Project | null
-  selectedPartId: string | null
 
   // Actions
   loadProject: (name: string, parts: Part[]) => void
   updatePartMatrix: (partId: string, newMatrix: Matrix4) => void
   setValidityReport: (report: ValidityReport) => void
   resetProject: () => void
-  selectPart: (id: string | null) => void
 }
 
 export const useProjectStore = create<ProjectStore>((set, get) => ({
   project: null,
-  selectedPartId: null,
 
   loadProject: (name, parts) => set({
     project: {
@@ -44,7 +41,6 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
       parts,
       validityReport: null,
     },
-    selectedPartId: null,
   }),
 
   updatePartMatrix: (partId, newMatrix) => {
@@ -76,7 +72,5 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
     }))
   },
 
-  resetProject: () => set({ project: null, selectedPartId: null }),
-
-  selectPart: (id) => set({ selectedPartId: id }),
+  resetProject: () => set({ project: null }),
 }))

@@ -1,6 +1,7 @@
 'use client';
 
 import { useProjectStore } from '../store/useProjectStore';
+import { useViewerStore } from '../store/useViewerStore';
 import * as Accordion from '@radix-ui/react-accordion';
 import * as ScrollArea from '@radix-ui/react-scroll-area';
 import * as Separator from '@radix-ui/react-separator';
@@ -8,9 +9,9 @@ import { ChevronDownIcon, CheckCircledIcon, CrossCircledIcon, ClockIcon } from '
 
 export default function ProjectStateViewer() {
   const project = useProjectStore(state => state.project);
-  const selectedPartId = useProjectStore(state => state.selectedPartId);
-  const selectPart = useProjectStore(state => state.selectPart);
   const setValidityReport = useProjectStore(state => state.setValidityReport);
+  const selectedPartId = useViewerStore(state => state.selectedPartId);
+  const selectPart = useViewerStore(state => state.selectPart);
   
   const selectedPart = project?.parts.find(part => part.id === selectedPartId);
   
