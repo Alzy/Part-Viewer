@@ -20,7 +20,7 @@ export default function DefaultSceneBackdrop() {
         args={[20, 20]}
         cellSize={1}
         cellThickness={0.5}
-        cellColor="#d1d5db"
+        cellColor="#3674b5"
         sectionSize={5}
         sectionThickness={1}
         sectionColor="#9ca3af"
