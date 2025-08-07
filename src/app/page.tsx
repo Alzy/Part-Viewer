@@ -7,6 +7,7 @@ import ProjectStateViewer from './components/ProjectStateViewer';
 import DefaultSceneBackdrop from './components/DefaultSceneBackdrop';
 import ProjectParts from './components/ProjectParts';
 import { loadProjectFile } from './utils/fileLoader';
+import ViewportShadingSelector from "@/app/components/ViewportShadingSelector";
 
 export default function Home() {
   const loadProject = useProjectStore(state => state.loadProject);
@@ -96,6 +97,8 @@ export default function Home() {
           <DefaultSceneBackdrop />
           <ProjectParts />
         </Canvas>
+
+        <ViewportShadingSelector/>
       </div>
 
       {/* Sidebar */}
