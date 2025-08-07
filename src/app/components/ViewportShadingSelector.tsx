@@ -35,15 +35,15 @@ const viewModes: ViewModeOption[] = [
 
 const stressViewModes: StressViewModeOption[] = [
   {
+    mode: 'vertex_shading',
+    label: 'Vertex Shading',
+    icon: '/icons/textured-mode.svg'
+  },
+  {
     mode: 'voxels',
     label: 'Voxels',
     icon: '/icons/cube.svg'
   },
-  {
-    mode: 'vertex_shading',
-    label: 'Vertex Shading',
-    icon: '/icons/textured-mode.svg'
-  }
 ];
 
 export default function ViewportShadingSelector() {

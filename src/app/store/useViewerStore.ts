@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 
 type ViewMode = 'textured' | 'wireframe' | 'flat';
-type StressDataViewMode = 'voxels' | 'vertex_shading';
+type StressDataViewMode = 'vertex_shading' | 'voxels';
 
 type ViewerStore = {
   viewMode: ViewMode;
@@ -23,7 +23,7 @@ export const useViewerStore = create<ViewerStore>((set) => ({
   viewMode: 'textured',
   selectedPartId: null,
   showStressData: false,
-  stressDataViewMode: 'voxels',
+  stressDataViewMode: 'vertex_shading',
 
   setViewMode: (mode) => set({ viewMode: mode }),
 
@@ -37,5 +37,5 @@ export const useViewerStore = create<ViewerStore>((set) => ({
 
   setStressDataViewMode: (mode) => set({ stressDataViewMode: mode }),
 
-  resetStressSettings: () => set({ showStressData: false, stressDataViewMode: 'voxels' }),
+  resetStressSettings: () => set({ showStressData: false, stressDataViewMode: 'vertex_shading' }),
 }));
