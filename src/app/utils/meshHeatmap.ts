@@ -1,8 +1,8 @@
 import {
-  BufferAttribute,
+  BufferAttribute, BufferGeometry,
   Color,
   Mesh,
-  MeshStandardMaterial,
+  MeshBasicMaterial,
   Vector3,
 } from "three";
 import type { SimpleVoxelGrid } from "./simpleVoxelGrid";
@@ -10,18 +10,18 @@ import type { SimpleVoxelGrid } from "./simpleVoxelGrid";
 export function createHeatmapMaterial(
   mesh: Mesh,
   voxelGrid: SimpleVoxelGrid
-) {
+): { material: MeshBasicMaterial; geometry: BufferGeometry } {
+  // Clone the geometry to avoid modifying the original
   const geometry = mesh.geometry.index
     ? mesh.geometry.toNonIndexed()
-    : mesh.geometry;
+    : mesh.geometry.clone();
 
   const pos = geometry.getAttribute("position");
   const vertCount = pos.count;
-  const colors = new Float32Array(vertCount * 3);
-
+  
   const stats = voxelGrid.getVoxelGridStats();
-  const min = Math.max(0, stats.min || 0);
-  const max = Math.max(1, stats.max || 1);
+  const min = stats.min || 0;
+  const max = stats.max || 1;
   const denom = Math.max(1e-6, max - min);
 
   const pLocal = new Vector3();
@@ -34,24 +34,33 @@ export function createHeatmapMaterial(
     return color;
   };
 
+  const colorArray = [];
   for (let i = 0; i < vertCount; i++) {
     pLocal.fromBufferAttribute(pos as BufferAttribute, i);
     pWorld.copy(pLocal).applyMatrix4(mesh.matrixWorld);
 
     const value = voxelGrid.getVoxelValue(pWorld);
-    let t = (value - min) / denom;
-    if (value <= 0) t = 0;
-    t = Math.min(Math.max(t, 0), 1);
+    
+    let t = 0;
+    if (max > min && value > 0) {
+      t = (value - min) / denom;
+      t = Math.min(Math.max(t, 0), 1);
+    } else if (value > 0) {
+      // If all values are the same, show them as mid-range
+      t = 0.5;
+    }
+    // If value is 0, t remains 0 (blue)
 
-    const c = hslFromNormalized(t);
-    const o = i * 3;
-    colors[o] = c.r;
-    colors[o + 1] = c.g;
-    colors[o + 2] = c.b;
+    const color = hslFromNormalized(t);
+    colorArray.push(color.r, color.g, color.b);
   }
 
-  geometry.setAttribute("color", new BufferAttribute(colors, 3));
-  geometry.getAttribute("color").needsUpdate = true;
+  // Create color attribute following the THREE.js example pattern
+  const colorAttribute = new BufferAttribute(new Float32Array(colorArray), 3);
+  geometry.setAttribute('color', colorAttribute);
 
-  return new MeshStandardMaterial({ vertexColors: true });
+  return {
+    material: new MeshBasicMaterial({ vertexColors: true }),
+    geometry: geometry
+  };
 }

@@ -1,7 +1,6 @@
 'use client';
 
-import { useMemo, useRef } from 'react';
-import { MeshStandardMaterial, MeshBasicMaterial, Material, Color, Mesh } from 'three';
+import {MeshStandardMaterial, MeshBasicMaterial, Material, Color, Mesh, BufferGeometry} from 'three';
 import { useProjectStore } from '../store/useProjectStore';
 import { useViewerStore } from '../store/useViewerStore';
 import VoxelViewer from './VoxelViewer';
@@ -15,7 +14,20 @@ export default function ProjectParts() {
   const showStressData = useViewerStore(state => state.showStressData);
   const stressDataViewMode = useViewerStore(state => state.stressDataViewMode);
 
-  const getMaterialForViewMode = useMemo(() => {
+  const getMaterialForViewMode = (
+    originalMaterial: Material | Material[] | undefined, isSelected: boolean, mesh?: Mesh
+  ): { material: Material | Material[], geometry?: BufferGeometry } => {
+    // If stress data is enabled and in vertex shading mode, use heatmap material
+    if (showStressData && stressDataViewMode === 'vertex_shading' && project?.voxelGrid && mesh) {
+      try {
+        const heatmapResult = createHeatmapMaterial(mesh, project.voxelGrid);
+        return { material: heatmapResult.material, geometry: heatmapResult.geometry };
+      } catch (error) {
+        console.warn('Failed to create heatmap material:', error);
+        // Fallback to normal material if heatmap creation fails
+      }
+    }
+
     const extractColor = (material: Material | Material[] | undefined): string => {
       const defaultColor = '#026ec1';
       if (!material) return defaultColor;
@@ -30,51 +42,36 @@ export default function ProjectParts() {
       return `#${color.getHexString()}`;
     };
 
-    return (originalMaterial: Material | Material[] | undefined, isSelected: boolean, mesh?: Mesh): Material | Material[] => {
-      // If stress data is enabled and in vertex shading mode, use heatmap material
-      if (showStressData && stressDataViewMode === 'vertex_shading' && project?.voxelGrid && mesh) {
-        const heatmapMaterial = createHeatmapMaterial(mesh, project.voxelGrid);
-        
-        // If selected, add emissive glow to the heatmap material
-        if (isSelected) {
-          heatmapMaterial.emissive = new Color('#ff6b35');
-          heatmapMaterial.emissiveIntensity = 0.3;
-        }
-        
-        return heatmapMaterial;
-      }
-
-      const baseColor = extractColor(originalMaterial);
-      const selectedColor = isSelected ? '#ff6b35' : baseColor; // Orange highlight for selected parts
+    const baseColor = extractColor(originalMaterial);
+    const selectedColor = isSelected ? '#ff6b35' : baseColor; // Orange highlight for selected parts
+    
+    switch (viewMode) {
+      case 'wireframe':
+        return { material: new MeshBasicMaterial({
+          color: selectedColor,
+          wireframe: true,
+          transparent: true,
+          opacity: isSelected ? 1.0 : 0.8
+        }) };
       
-      switch (viewMode) {
-        case 'wireframe':
-          return new MeshBasicMaterial({
-            color: selectedColor,
-            wireframe: true,
-            transparent: true,
-            opacity: isSelected ? 1.0 : 0.8
-          });
-        
-        case 'flat':
-          return new MeshBasicMaterial({
-            color: selectedColor
-          });
-        
-        case 'textured':
-        default:
-          if (isSelected) {
-            // For selected parts in textured mode, add an emissive glow
-            return new MeshStandardMaterial({
-              color: baseColor,
-              emissive: new Color('#ff6b35'),
-              emissiveIntensity: 0.3
-            });
-          }
-          return originalMaterial || new MeshStandardMaterial({ color: baseColor });
-      }
-    };
-  }, [viewMode, showStressData, stressDataViewMode, project?.voxelGrid]);
+      case 'flat':
+        return { material: new MeshBasicMaterial({
+          color: selectedColor
+        }) };
+      
+      case 'textured':
+      default:
+        if (isSelected) {
+          // For selected parts in textured mode, add an emissive glow
+          return { material: new MeshStandardMaterial({
+            color: baseColor,
+            emissive: new Color('#ff6b35'),
+            emissiveIntensity: 0.3
+          }) };
+        }
+        return { material: originalMaterial || new MeshStandardMaterial({ color: baseColor }) };
+    }
+  };
 
   return (
     <>
@@ -87,12 +84,18 @@ export default function ProjectParts() {
             matrixAutoUpdate={false}
             geometry={part.geometry}
             ref={(mesh) => {
-              if (mesh && showStressData && stressDataViewMode === 'vertex_shading' && project?.voxelGrid) {
-                // Update material when mesh is available and stress data conditions are met
-                mesh.material = getMaterialForViewMode(part.material, isSelected, mesh);
-              } else if (mesh) {
-                // Use normal material when stress data is not enabled
-                mesh.material = getMaterialForViewMode(part.material, isSelected);
+              if (mesh) {
+                // Ensure the matrix world is updated before creating heatmap materials
+                mesh.updateMatrixWorld(true);
+                
+                const result = showStressData && stressDataViewMode === 'vertex_shading' && project?.voxelGrid
+                  ? getMaterialForViewMode(part.material, isSelected, mesh)
+                  : getMaterialForViewMode(part.material, isSelected);
+                
+                mesh.material = result.material;
+                if (result.geometry) {
+                  mesh.geometry = result.geometry;
+                }
               }
             }}
           />
