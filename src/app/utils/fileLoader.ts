@@ -1,4 +1,4 @@
-import { Matrix4, BufferGeometry, Material, MeshStandardMaterial } from 'three';
+import { Matrix4, BufferGeometry, Material, MeshStandardMaterial, Object3D, Group, Mesh } from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { STLLoader } from 'three/examples/jsm/loaders/STLLoader.js';
 import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader.js';
@@ -15,6 +15,7 @@ export interface LoadedPart {
 export interface LoadedProject {
   name: string;
   parts: LoadedPart[];
+  sceneRoot: Object3D;
   originalFile?: {
     name: string;
     type: string;
@@ -52,17 +53,24 @@ export class FileLoader {
 
     try {
       let parts: LoadedPart[] = [];
+      let sceneRoot: Object3D;
 
       switch (fileExtension) {
         case 'glb':
         case 'gltf':
-          parts = await this.loadGLTF(filePathOrFile);
+          const gltfResult = await this.loadGLTF(filePathOrFile);
+          parts = gltfResult.parts;
+          sceneRoot = gltfResult.sceneRoot;
           break;
         case 'stl':
-          parts = await this.loadSTL(filePathOrFile);
+          const stlResult = await this.loadSTL(filePathOrFile);
+          parts = stlResult.parts;
+          sceneRoot = stlResult.sceneRoot;
           break;
         case 'obj':
-          parts = await this.loadOBJ(filePathOrFile);
+          const objResult = await this.loadOBJ(filePathOrFile);
+          parts = objResult.parts;
+          sceneRoot = objResult.sceneRoot;
           break;
         default:
           throw new Error(`Unsupported file format: ${fileExtension}`);
@@ -75,6 +83,7 @@ export class FileLoader {
       return {
         name: projectName,
         parts,
+        sceneRoot,
         originalFile: {
           name: fileName,
           type: fileExtension,
@@ -86,7 +95,7 @@ export class FileLoader {
     }
   }
 
-  private async loadGLTF(filePathOrFile: string | File): Promise<LoadedPart[]> {
+  private async loadGLTF(filePathOrFile: string | File): Promise<{ parts: LoadedPart[]; sceneRoot: Object3D }> {
     const gltf: any = await new Promise((resolve, reject) => {
       if (typeof filePathOrFile === 'string') {
         this.gltfLoader.load(
@@ -127,10 +136,10 @@ export class FileLoader {
       }
     });
 
-    return parts;
+    return { parts, sceneRoot: gltf.scene };
   }
 
-  private async loadSTL(filePathOrFile: string | File): Promise<LoadedPart[]> {
+  private async loadSTL(filePathOrFile: string | File): Promise<{ parts: LoadedPart[]; sceneRoot: Object3D }> {
     const geometry: BufferGeometry = await new Promise((resolve, reject) => {
       if (typeof filePathOrFile === 'string') {
         this.stlLoader.load(
@@ -166,16 +175,24 @@ export class FileLoader {
     // TODO: We should implement proper unit detection and scaling based on model dimensions or adapt scene camera  and grid?
     const scaleMatrix = new Matrix4().makeScale(0.05, 0.05, 0.05);
 
-    return [{
+    // Create a mesh and add it to a group to serve as scene root
+    const mesh = new Mesh(geometry, defaultMaterial);
+    mesh.applyMatrix4(scaleMatrix);
+    const sceneRoot = new Group();
+    sceneRoot.add(mesh);
+
+    const parts: LoadedPart[] = [{
       id: `stl-${Date.now()}`,
       name: 'STL Mesh',
       matrix: scaleMatrix,
       geometry: geometry,
       material: defaultMaterial,
     }];
+
+    return { parts, sceneRoot };
   }
 
-  private async loadOBJ(filePathOrFile: string | File): Promise<LoadedPart[]> {
+  private async loadOBJ(filePathOrFile: string | File): Promise<{ parts: LoadedPart[]; sceneRoot: Object3D }> {
     const objGroup: any = await new Promise((resolve, reject) => {
       if (typeof filePathOrFile === 'string') {
         this.objLoader.load(
@@ -224,7 +241,7 @@ export class FileLoader {
       }
     });
 
-    return parts;
+    return { parts, sceneRoot: objGroup };
   }
 }
 

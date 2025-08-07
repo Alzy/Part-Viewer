@@ -8,12 +8,15 @@ import DefaultSceneBackdrop from './components/DefaultSceneBackdrop';
 import ProjectParts from './components/ProjectParts';
 import { loadProjectFile } from './utils/fileLoader';
 import ViewportShadingSelector from "@/app/components/ViewportShadingSelector";
+import {SimpleVoxelGrid} from "@/app/utils/simpleVoxelGrid";
+import VoxelViewer from "@/app/components/VoxelViewer";
 
 export default function Home() {
   const loadProject = useProjectStore(state => state.loadProject);
   const project = useProjectStore(state => state.project);
   const [isLoadingProject, setIsLoadingProject] = useState(false);
-  
+  const [voxelGrid, setVoxelGrid] = useState<SimpleVoxelGrid | null>(null);
+
   const loadDefaultProject = async () => {
     if (isLoadingProject || project) return;
     
@@ -21,6 +24,8 @@ export default function Home() {
     try {
       // Load our default file.
       const loadedProject = await loadProjectFile('/new-project.glb');
+      const _voxelGrid = new SimpleVoxelGrid(loadedProject.sceneRoot);
+      setVoxelGrid(_voxelGrid);
       loadProject(loadedProject.name, loadedProject.parts);
     } catch (error) {
       console.error('Failed to load default project:', error);
@@ -72,7 +77,9 @@ export default function Home() {
       // Use the original file name for the project
       const projectName = file.name.replace(/\.[^/.]+$/, ''); // Remove extension
       loadProject(projectName, loadedProject.parts);
-      
+      const _voxelGrid = new SimpleVoxelGrid(loadedProject.sceneRoot);
+      setVoxelGrid(_voxelGrid);
+
       console.log(`Successfully loaded project: ${projectName}`);
     } catch (error) {
       console.error('Failed to load dropped file:', error);
@@ -96,6 +103,8 @@ export default function Home() {
         >
           <DefaultSceneBackdrop />
           <ProjectParts />
+
+          {voxelGrid && <VoxelViewer voxelGrid={voxelGrid}/>}
         </Canvas>
 
         <ViewportShadingSelector/>
