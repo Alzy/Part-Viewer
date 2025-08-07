@@ -1,5 +1,5 @@
-import { Matrix4 } from 'three'
-import { create } from 'zustand'
+import { create } from 'zustand';
+import {Matrix4} from "three";
 
 type Part = {
   id: string

@@ -1,7 +1,11 @@
 'use client';
 
+import { useEffect } from 'react';
 import {Canvas} from '@react-three/fiber';
 import {Grid, OrbitControls} from '@react-three/drei';
+import { Matrix4 } from 'three';
+import { useProjectStore } from './store/useProjectStore';
+import ProjectStateViewer from './components/ProjectStateViewer';
 
 function Cube() {
   return (
@@ -58,15 +62,37 @@ function Scene() {
 }
 
 export default function Home() {
+  const loadProject = useProjectStore(state => state.loadProject);
+  const project = useProjectStore(state => state.project);
+  
+  // Initialize project on page load
+  useEffect(() => {
+    if (!project) {
+      const defaultCubePart = {
+        id: 'default-cube',
+        name: 'Cube',
+        matrix: new Matrix4(),
+      };
+      
+      loadProject('New Project', [defaultCubePart]);
+    }
+  }, [project, loadProject]);
+  
   return (
-    <div className="w-full h-screen bg-gray-100">
-      <Canvas
-        camera={{ position: [5, 5, 5], fov: 60 }}
-        shadows
-        style={{ background: '#f8fafc' }}
-      >
-        <Scene />
-      </Canvas>
+    <div className="flex w-full h-screen bg-gray-100">
+      {/* 3D Canvas */}
+      <div className="flex-1">
+        <Canvas
+          camera={{ position: [5, 5, 5], fov: 60 }}
+          shadows
+          style={{ background: '#f8fafc' }}
+        >
+          <Scene />
+        </Canvas>
+      </div>
+      
+      {/* Sidebar */}
+      <ProjectStateViewer />
     </div>
   );
 }
