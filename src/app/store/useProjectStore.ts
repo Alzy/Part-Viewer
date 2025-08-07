@@ -1,10 +1,12 @@
 import { create } from 'zustand';
-import {Matrix4} from "three";
+import {Matrix4, BufferGeometry, Material} from "three";
 
 type Part = {
   id: string
   name: string
   matrix: Matrix4
+  geometry?: BufferGeometry
+  material?: Material | Material[]
   children?: Part[]
 }
 
