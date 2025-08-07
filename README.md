@@ -2,6 +2,8 @@
 
 A lightweight CAD model viewer built with modern web tools. Designed for easy part inspection, format flexibility, and simulated validation.
 
+![screenshot.png](public/screenshot.png)
+
 ## Features
 
 - Load `.stl`, `.obj`, and `.glb` 3D model files
