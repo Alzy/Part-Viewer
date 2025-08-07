@@ -162,10 +162,14 @@ export class FileLoader {
       roughness: 0.4,
     });
 
+    // Scale down STL geometry to 5% - this is a temporary fix for STL units
+    // TODO: We should implement proper unit detection and scaling based on model dimensions or adapt scene camera  and grid?
+    const scaleMatrix = new Matrix4().makeScale(0.05, 0.05, 0.05);
+
     return [{
       id: `stl-${Date.now()}`,
       name: 'STL Mesh',
-      matrix: new Matrix4(),
+      matrix: scaleMatrix,
       geometry: geometry,
       material: defaultMaterial,
     }];
