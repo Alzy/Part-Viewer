@@ -6,6 +6,11 @@ import { useViewerStore } from '../store/useViewerStore';
 import VoxelViewer from './VoxelViewer';
 import { createHeatmapMaterial } from '../utils/meshHeatmap';
 
+/**
+ * Draws the project part tree to the Three.js Canvas.
+ * Displays stress data on parts based on current stress data view.
+ * @constructor
+ */
 export default function ProjectParts() {
   const project = useProjectStore(state => state.project);
   const parts = project?.parts || [];
