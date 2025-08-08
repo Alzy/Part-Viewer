@@ -2,6 +2,11 @@
 
 import { Grid, OrbitControls } from '@react-three/drei';
 
+/**
+ * Default Cad Viewer environment.
+ * Includes floor grid, orbit controls and lighting.
+ * @constructor
+ */
 export default function DefaultSceneBackdrop() {
   return (
     <>
