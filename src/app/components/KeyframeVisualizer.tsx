@@ -3,13 +3,8 @@
 import React from 'react';
 import { Vector3 } from 'three';
 
-interface Keyframe {
-  target: Vector3;
-  time: number;
-}
-
 interface KeyframeVisualizerProps {
-  keyframes: Keyframe[];
+  keyframes: Vector3[];
   currentTarget?: Vector3;
   showKeyframes?: boolean;
   showCurrentTarget?: boolean;
@@ -33,7 +28,7 @@ const KeyframeVisualizer: React.FC<KeyframeVisualizerProps> = ({
       
       {/* Keyframe visualization */}
       {showKeyframes && keyframes.map((keyframe, index) => (
-        <mesh key={index} position={keyframe.target.toArray()}>
+        <mesh key={index} position={keyframe.toArray()}>
           <sphereGeometry args={[0.03]} />
           <meshBasicMaterial color="orange" transparent opacity={0.4} />
         </mesh>
