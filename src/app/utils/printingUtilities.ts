@@ -1,70 +1,76 @@
-import { Vector3, BufferGeometry } from 'three';
+import { Vector3, Object3D, Mesh, BufferGeometry } from 'three';
 
 /**
- * Utilities for 3D printing and robot arm operations
+ * Extract keyframes from Object3D by getting all vertex world positions
+ * Merges vertices that are within epsilon distance of each other
+ * @param object3D Object3D to extract vertices from (traverses all meshes)
+ * @param delta Minimum distance between keyframes (default: 0.001)
+ * @returns Array of Vector3 keyframes in world space
  */
-
-/**
- * Extract keyframes from buffer geometry vertices
- * @param geometry BufferGeometry to extract vertices from
- * @param simplificationFactor Optional factor to reduce number of keyframes (default: 1 = all vertices)
- * @returns Array of Vector3 keyframes
- */
-export function getKeyframesFromGeometry(
-  geometry: BufferGeometry,
-  simplificationFactor: number = 1
+export function getKeyframesFromObject3D(
+  object3D: Object3D,
+  delta: number = 0.001
 ): Vector3[] {
-  const keyframes: Vector3[] = [];
-  const positionAttribute = geometry.getAttribute('position');
+  const allVertices: Vector3[] = [];
   
-  if (!positionAttribute) {
-    console.warn('getKeyframesFromGeometry: No position attribute found in geometry');
-    return keyframes;
-  }
+  // Ensure all world matrices are up to date
+  object3D.updateMatrixWorld(true);
   
-  const vertexCount = positionAttribute.count;
-  const step = Math.max(1, Math.floor(simplificationFactor));
+  let totalVertices = 0;
+  let meshCount = 0;
   
-  for (let i = 0; i < vertexCount; i += step) {
-    const x = positionAttribute.getX(i);
-    const y = positionAttribute.getY(i);
-    const z = positionAttribute.getZ(i);
+  // Traverse all meshes in the object and collect all vertices
+  object3D.traverse((child) => {
+    if (child instanceof Mesh && child.geometry) {
+      meshCount++;
+      const geometry = child.geometry as BufferGeometry;
+      const positionAttribute = geometry.getAttribute('position');
+      
+      if (!positionAttribute) {
+        console.warn('getKeyframesFromObject3D: No position attribute found in mesh geometry');
+        return;
+      }
+      
+      const vertexCount = positionAttribute.count;
+      totalVertices += vertexCount;
+      
+      console.log(`Mesh ${meshCount}: ${child.name || 'unnamed'} has ${vertexCount} vertices`);
+      
+      for (let i = 0; i < vertexCount; i++) {
+        const x = positionAttribute.getX(i);
+        const y = positionAttribute.getY(i);
+        const z = positionAttribute.getZ(i);
+        
+        // Create vertex in local space
+        const vertex = new Vector3(x, y, z);
+        
+        // Transform to world space using the mesh's world matrix
+        vertex.applyMatrix4(child.matrixWorld);
+        
+        allVertices.push(vertex);
+      }
+    }
+  });
+  
+  // Merge vertices that are within epsilon distance
+  const mergedKeyframes: Vector3[] = [];
+  
+  for (const vertex of allVertices) {
+    let shouldAdd = true;
     
-    keyframes.push(new Vector3(x, y, z));
-  }
-  
-  return keyframes;
-}
-
-/**
- * Simplify keyframes by removing points that are too close together
- * @param keyframes Original keyframes array
- * @param minDistance Minimum distance between keyframes
- * @returns Simplified keyframes array
- */
-export function simplifyKeyframes(
-  keyframes: Vector3[],
-  minDistance: number = 0.1
-): Vector3[] {
-  if (keyframes.length <= 1) return keyframes;
-  
-  const simplified: Vector3[] = [keyframes[0]]; // Always keep first point
-  
-  for (let i = 1; i < keyframes.length; i++) {
-    const lastPoint = simplified[simplified.length - 1];
-    const currentPoint = keyframes[i];
+    // Check if this vertex is too close to any existing keyframe
+    for (const existingKeyframe of mergedKeyframes) {
+      if (vertex.distanceTo(existingKeyframe) < delta) {
+        shouldAdd = false;
+        break;
+      }
+    }
     
-    if (lastPoint.distanceTo(currentPoint) >= minDistance) {
-      simplified.push(currentPoint);
+    if (shouldAdd) {
+      mergedKeyframes.push(vertex.clone());
     }
   }
   
-  // Always keep last point if it's not already included
-  const lastOriginal = keyframes[keyframes.length - 1];
-  const lastSimplified = simplified[simplified.length - 1];
-  if (!lastOriginal.equals(lastSimplified)) {
-    simplified.push(lastOriginal);
-  }
-  
-  return simplified;
+  console.log(`Found ${meshCount} meshes with ${totalVertices} total vertices, merged to ${mergedKeyframes.length} keyframes (epsilon: ${delta})`);
+  return mergedKeyframes;
 }

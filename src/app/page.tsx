@@ -10,6 +10,7 @@ import RobotArm from './components/RobotArm';
 import KeyframeVisualizer from './components/KeyframeVisualizer';
 import {usePrinterStore} from './store/usePrinterStore';
 import {loadProjectFile} from './utils/fileLoader';
+import {getKeyframesFromObject3D} from './utils/printingUtilities';
 import ViewportShadingSelector from "@/app/components/ViewportShadingSelector";
 import {SimpleVoxelGrid} from "@/app/utils/simpleVoxelGrid";
 
@@ -23,6 +24,7 @@ export default function Home() {
   const keyframes = usePrinterStore(state => state.keyframes);
   const currentTarget = usePrinterStore(state => state.currentTarget);
   const setIsPlaying = usePrinterStore(state => state.setIsPlaying);
+  const setKeyframes = usePrinterStore(state => state.setKeyframes);
   
   // Start animation when component mounts
   useEffect(() => {
@@ -39,6 +41,10 @@ export default function Home() {
       const _voxelGrid = new SimpleVoxelGrid(loadedProject.sceneRoot);
       loadProject(loadedProject.name, loadedProject.parts);
       setVoxelGrid(_voxelGrid);
+      
+      // Extract keyframes from loaded Object3D
+      const keyframes = getKeyframesFromObject3D(loadedProject.sceneRoot);
+      if (keyframes.length > 1) setKeyframes(keyframes);
     } catch (error) {
       console.error('Failed to load default project:', error);
       loadProject('Blank Project', []); // Fallback to blank project on error
@@ -91,6 +97,10 @@ export default function Home() {
       loadProject(projectName, loadedProject.parts);
       const _voxelGrid = new SimpleVoxelGrid(loadedProject.sceneRoot);
       setVoxelGrid(_voxelGrid);
+
+      // Extract keyframes from loaded Object3D
+      const keyframes = getKeyframesFromObject3D(loadedProject.sceneRoot);
+      if (keyframes.length > 1) setKeyframes(keyframes);
 
       console.log(`Successfully loaded project: ${projectName}`);
     } catch (error) {
