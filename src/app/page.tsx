@@ -2,10 +2,13 @@
 
 import { useEffect, useState } from 'react';
 import {Canvas} from '@react-three/fiber';
+import { Vector3 } from 'three';
 import { useProjectStore } from './store/useProjectStore';
 import ProjectStateViewer from './components/ProjectStateViewer';
 import DefaultSceneBackdrop from './components/DefaultSceneBackdrop';
 import ProjectParts from './components/ProjectParts';
+import RobotArm, { Keyframe } from './components/RobotArm';
+import KeyframeVisualizer from './components/KeyframeVisualizer';
 import { loadProjectFile } from './utils/fileLoader';
 import ViewportShadingSelector from "@/app/components/ViewportShadingSelector";
 import {SimpleVoxelGrid} from "@/app/utils/simpleVoxelGrid";
@@ -15,6 +18,17 @@ export default function Home() {
   const setVoxelGrid = useProjectStore(state => state.setVoxelGrid);
   const project = useProjectStore(state => state.project);
   const [isLoadingProject, setIsLoadingProject] = useState(false);
+  const [currentTarget, setCurrentTarget] = useState<Vector3 | undefined>();
+  
+  // Define keyframes for robot arm animation
+  const robotArmKeyframes: Keyframe[] = [
+    { target: new Vector3(1.2, 0.8, 0.3), time: 0.0 },
+    { target: new Vector3(0.8, 1.4, 0.5), time: 0.2 },
+    { target: new Vector3(0.2, 1.2, 0.8), time: 0.4 },
+    { target: new Vector3(-0.3, 0.9, 0.4), time: 0.6 },
+    { target: new Vector3(0.1, 0.6, -0.2), time: 0.8 },
+    { target: new Vector3(0.9, 0.7, 0.1), time: 1.0 }
+  ];
 
   const loadDefaultProject = async () => {
     if (isLoadingProject || project) return;
@@ -102,6 +116,18 @@ export default function Home() {
         >
           <DefaultSceneBackdrop />
           <ProjectParts />
+          <RobotArm
+            position={[5, 0, 0]}
+            animate={true}
+            keyframes={robotArmKeyframes}
+            onTargetChange={setCurrentTarget}
+          />
+          <KeyframeVisualizer
+            keyframes={robotArmKeyframes}
+            currentTarget={currentTarget}
+            showKeyframes={true}
+            showCurrentTarget={true}
+          />
         </Canvas>
 
         <ViewportShadingSelector/>
