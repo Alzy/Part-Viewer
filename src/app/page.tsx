@@ -110,7 +110,12 @@ export default function Home() {
       {/* 3D Canvas */}
       <div className="flex-3 relative">
         <Canvas
-          camera={{ position: [5, 5, 5], fov: 60 }}
+          camera={{
+            position: [5, 5, 10],
+            fov: 60,
+            near: 0.0001,
+            far: 10000
+          }}
           shadows
           style={{ background: '#f8fafc' }}
         >

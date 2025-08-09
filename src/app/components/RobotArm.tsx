@@ -3,7 +3,7 @@
 import React, { useRef, useEffect, useState, useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { useGLTF } from '@react-three/drei';
-import { Group, SkinnedMesh, Skeleton, Vector3 } from 'three';
+import { Group, SkinnedMesh, Skeleton, Vector3, Mesh } from 'three';
 import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
 import { SimpleTwoBoneIK } from '../utils/simpleTwoBoneIK';
 
@@ -50,6 +50,13 @@ const RobotArm: React.FC<RobotArmProps> = ({
   useEffect(() => {
     if (!clonedScene) return;
     
+    // Disable frustum culling on all meshes in the robot arm
+    clonedScene.traverse((child) => {
+      if (child instanceof Mesh || child instanceof SkinnedMesh) {
+        child.frustumCulled = false;
+      }
+    });
+    
     // Find skeleton
     let foundSkeleton: Skeleton | null = null;
     clonedScene.traverse((child) => {
@@ -64,7 +71,7 @@ const RobotArm: React.FC<RobotArmProps> = ({
       try {
         const solver = new SimpleTwoBoneIK(foundSkeleton, {
           rootBoneName: 'Shoulder',
-          middleBoneName: 'Elbow', 
+          middleBoneName: 'Elbow',
           endBoneName: 'Effector'
         });
         setIkSolver(solver);
