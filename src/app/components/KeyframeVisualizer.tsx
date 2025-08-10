@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState, useRef } from 'react';
-import { Vector3 } from 'three';
+import React, { useState, useRef, useEffect, RefObject } from 'react';
+import { Vector3, Object3D, InstancedMesh, BufferGeometry, Material, Color, DynamicDrawUsage } from 'three';
 import { useFrame } from '@react-three/fiber';
 import { usePrinterStore } from '../store/usePrinterStore';
 import { printerAnimationController } from '../controllers/PrinterAnimationController';
@@ -18,6 +18,9 @@ const KeyframeVisualizer: React.FC<KeyframeVisualizerProps> = ({
   const [currentTarget, setCurrentTarget] = useState(new Vector3());
   const lastUpdate = useRef(0);
   
+  // Refs for instanced meshes
+  const keyframesMeshRef = useRef<InstancedMesh<BufferGeometry, Material | Material[]>>(null);
+  
   // Get keyframes from store
   const keyframes = usePrinterStore(state => state.keyframes);
   
@@ -30,6 +33,35 @@ const KeyframeVisualizer: React.FC<KeyframeVisualizerProps> = ({
     }
   });
 
+  // Update instanced mesh when keyframes change
+  useEffect(() => {
+    if (!keyframesMeshRef.current || !showKeyframes || keyframes.length === 0) return;
+
+    const dummy = new Object3D();
+    const orangeColor = new Color('orange');
+
+    keyframes.forEach((keyframe, index) => {
+      // Set position for this instance
+      dummy.position.copy(keyframe);
+      dummy.updateMatrix();
+      keyframesMeshRef.current?.setMatrixAt(index, dummy.matrix);
+      
+      // Set color for this instance
+      keyframesMeshRef.current?.setColorAt(index, orangeColor);
+    });
+
+    // Mark for update
+    if (keyframesMeshRef.current.instanceMatrix) {
+      keyframesMeshRef.current.instanceMatrix.setUsage(DynamicDrawUsage);
+      keyframesMeshRef.current.instanceMatrix.needsUpdate = true;
+    }
+    
+    if (keyframesMeshRef.current.instanceColor) {
+      keyframesMeshRef.current.instanceColor.setUsage(DynamicDrawUsage);
+      keyframesMeshRef.current.instanceColor.needsUpdate = true;
+    }
+  }, [keyframes, showKeyframes]);
+
   return (
     <>
       {/* Current target visualization */}
@@ -40,13 +72,16 @@ const KeyframeVisualizer: React.FC<KeyframeVisualizerProps> = ({
         </mesh>
       )}
       
-      {/* Keyframe visualization */}
-      {showKeyframes && keyframes.map((keyframe, index) => (
-        <mesh key={index} position={keyframe.toArray()}>
+      {/* Keyframes visualization using instanced mesh */}
+      {showKeyframes && keyframes.length > 0 && (
+        <instancedMesh
+          ref={keyframesMeshRef as RefObject<InstancedMesh<BufferGeometry, Material | Material[]>>}
+          args={[undefined, undefined, keyframes.length]}
+        >
           <sphereGeometry args={[0.03]} />
-          <meshBasicMaterial color="orange" transparent opacity={0.4} />
-        </mesh>
-      ))}
+          <meshBasicMaterial transparent opacity={0.4} />
+        </instancedMesh>
+      )}
     </>
   );
 };
