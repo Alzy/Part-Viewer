@@ -1,12 +1,12 @@
 'use client';
 
-import React, { useRef, useEffect, useState, useMemo } from 'react';
-import { useFrame } from '@react-three/fiber';
-import { useGLTF } from '@react-three/drei';
-import { Group, SkinnedMesh, Skeleton, Vector3, Mesh } from 'three';
+import React, {useEffect, useMemo, useRef, useState} from 'react';
+import {useFrame} from '@react-three/fiber';
+import {useGLTF} from '@react-three/drei';
+import {Group, Mesh, Skeleton, SkinnedMesh} from 'three';
 import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
-import { SimpleTwoBoneIK } from '../utils/simpleTwoBoneIK';
-import { usePrinterStore } from '../store/usePrinterStore';
+import {SimpleTwoBoneIK} from '../utils/simpleTwoBoneIK';
+import {usePrinterStore} from '../store/usePrinterStore';
 
 interface RobotArmProps {
   position?: [number, number, number];
