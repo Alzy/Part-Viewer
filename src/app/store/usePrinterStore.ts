@@ -15,6 +15,7 @@ interface PrinterStore {
   pause: () => void;
   setSpeed: (speed: number) => void;
   setKeyframes: (keyframes: Vector3[]) => void;
+  clearKeyframes: () => void;
   toggleLoop: () => void;
 }
 
@@ -26,22 +27,13 @@ const calculateTotalDistance = (keyframes: Vector3[]): number => {
   return totalDistance;
 };
 
-const defaultKeyframes = [
-  new Vector3(1.2, 0.8, 0.3),
-  new Vector3(0.8, 1.4, 0.5),
-  new Vector3(0.2, 1.2, 0.8),
-  new Vector3(-0.3, 0.9, 0.4),
-  new Vector3(0.1, 0.6, -0.2),
-  new Vector3(0.9, 0.7, 0.1)
-];
-
 export const usePrinterStore = create<PrinterStore>((set, get) => ({
   isPlaying: false,
   speed: 0.333,
-  keyframes: defaultKeyframes,
+  keyframes: [],
   
   // Configuration
-  totalDistance: calculateTotalDistance(defaultKeyframes),
+  totalDistance: 0,
   loopEnabled: true,
   
   // User Actions
@@ -51,6 +43,11 @@ export const usePrinterStore = create<PrinterStore>((set, get) => ({
   setKeyframes: (keyframes: Vector3[]) => set({
     keyframes,
     totalDistance: calculateTotalDistance(keyframes)
+  }),
+  clearKeyframes: () => set({
+    keyframes: [],
+    totalDistance: 0,
+    isPlaying: false
   }),
   toggleLoop: () => set(state => ({ loopEnabled: !state.loopEnabled }))
 }));

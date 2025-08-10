@@ -2,6 +2,7 @@
 
 import {useEffect, useState} from 'react';
 import {Canvas} from '@react-three/fiber';
+import {Object3D} from 'three';
 import {useProjectStore} from './store/useProjectStore';
 import ProjectStateViewer from './components/ProjectStateViewer';
 import DefaultSceneBackdrop from './components/DefaultSceneBackdrop';
@@ -11,7 +12,6 @@ import KeyframeVisualizer from './components/KeyframeVisualizer';
 import PrinterControls from './components/PrinterControls';
 import {usePrinterStore} from './store/usePrinterStore';
 import {loadProjectFile} from './utils/fileLoader';
-import {getKeyframesFromObject3D} from './utils/printingUtilities';
 import ViewportShadingSelector from "@/app/components/ViewportShadingSelector";
 import {SimpleVoxelGrid} from "@/app/utils/simpleVoxelGrid";
 
@@ -22,31 +22,31 @@ export default function Home() {
   const [isLoadingProject, setIsLoadingProject] = useState(false);
   
   // Get printer actions from store
-  const setKeyframes = usePrinterStore(state => state.setKeyframes);
-  const play = usePrinterStore(state => state.play);
+  const clearKeyframes = usePrinterStore(state => state.clearKeyframes);
+  const pause = usePrinterStore(state => state.pause);
+  const isPlaying = usePrinterStore(state => state.isPlaying);
   
-  // Start animation when component mounts
-  useEffect(() => {
-    play();
-  }, [play]);
+  // Get project actions
+  const setPrintReady = useProjectStore(state => state.setPrintReady);
 
   const loadDefaultProject = async () => {
     if (isLoadingProject || project) return;
     
     setIsLoadingProject(true);
     try {
+      // Clear previous keyframes and stop printing
+      pause();
+      clearKeyframes();
+      setPrintReady(false); // Reset print readiness
+
       // Load our default file.
       const loadedProject = await loadProjectFile('/new-project.glb');
       const _voxelGrid = new SimpleVoxelGrid(loadedProject.sceneRoot);
-      loadProject(loadedProject.name, loadedProject.parts);
+      loadProject(loadedProject.name, loadedProject.parts, loadedProject.sceneRoot);
       setVoxelGrid(_voxelGrid);
-      
-      // Extract keyframes from loaded Object3D
-      const keyframes = getKeyframesFromObject3D(loadedProject.sceneRoot);
-      if (keyframes.length > 1) setKeyframes(keyframes);
     } catch (error) {
       console.error('Failed to load default project:', error);
-      loadProject('Blank Project', []); // Fallback to blank project on error
+      loadProject('Blank Project', [], new Object3D()); // Fallback to blank project on error
     } finally {
       setIsLoadingProject(false);
     }
@@ -88,18 +88,19 @@ export default function Home() {
 
     setIsLoadingProject(true);
     try {
+      setPrintReady(false); // Reset print readiness
+      // Clear previous keyframes and stop printing
+      pause();
+      clearKeyframes();
+
       // Pass the actual File object instead of blob URL to preserve file extension
       const loadedProject = await loadProjectFile(file);
-      
+
       // Use the original file name for the project
       const projectName = file.name.replace(/\.[^/.]+$/, ''); // Remove extension
-      loadProject(projectName, loadedProject.parts);
+      loadProject(projectName, loadedProject.parts, loadedProject.sceneRoot);
       const _voxelGrid = new SimpleVoxelGrid(loadedProject.sceneRoot);
       setVoxelGrid(_voxelGrid);
-
-      // Extract keyframes from loaded Object3D
-      const keyframes = getKeyframesFromObject3D(loadedProject.sceneRoot);
-      if (keyframes.length > 1) setKeyframes(keyframes);
 
       console.log(`Successfully loaded project: ${projectName}`);
     } catch (error) {
@@ -129,23 +130,32 @@ export default function Home() {
         >
           <DefaultSceneBackdrop />
           <ProjectParts />
-          <RobotArm position={[5, 0, 0]} />
-          <KeyframeVisualizer
-            showKeyframes={true}
-            showCurrentTarget={true}
-          />
+
+          {isPlaying && <>
+            <RobotArm position={[5, 0, 0]} />
+            <KeyframeVisualizer
+              showKeyframes={true}
+              showCurrentTarget={true}
+            />
+          </>}
         </Canvas>
 
         <ViewportShadingSelector/>
+        
+        {/* PrinterControls - only show when printing is active */}
+        {isPlaying && (
+          <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-10">
+            <div className="bg-white/90 backdrop-blur-sm rounded-lg shadow-lg p-4 min-w-80">
+              <PrinterControls />
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Sidebar */}
-      <div className="flex-1 flex flex-col">
-        <div className="flex-1">
+      <div className="flex-1 flex flex-col h-screen">
+        <div className="flex-1 h-full">
           <ProjectStateViewer />
-        </div>
-        <div className="p-4">
-          <PrinterControls />
         </div>
       </div>
 

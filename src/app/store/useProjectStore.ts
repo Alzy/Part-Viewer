@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import {Matrix4, BufferGeometry, Material} from "three";
+import {Matrix4, BufferGeometry, Material, Object3D} from "three";
 import {SimpleVoxelGrid} from "@/app/utils/simpleVoxelGrid";
 
 type Part = {
@@ -22,28 +22,33 @@ type Project = {
   parts: Part[]
   validityReport: ValidityReport | null
   voxelGrid: SimpleVoxelGrid | null
+  sceneRoot: Object3D | null
+  isPrintReady: boolean
 }
 
 type ProjectStore = {
   project: Project | null
 
   // Actions
-  loadProject: (name: string, parts: Part[]) => void
+  loadProject: (name: string, parts: Part[], sceneRoot: Object3D) => void
   updatePartMatrix: (partId: string, newMatrix: Matrix4) => void
   setValidityReport: (report: ValidityReport) => void
   setVoxelGrid: (voxelGrid: SimpleVoxelGrid) => void
+  setPrintReady: (ready: boolean) => void
   resetProject: () => void
 }
 
 export const useProjectStore = create<ProjectStore>((set, get) => ({
   project: null,
 
-  loadProject: (name, parts) => set({
+  loadProject: (name, parts, sceneRoot) => set({
     project: {
       name,
       parts,
       validityReport: null,
       voxelGrid: null,
+      sceneRoot,
+      isPrintReady: false,
     },
   }),
 
@@ -80,6 +85,14 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
     set((state) => ({
       project: state.project
         ? {...state.project, voxelGrid: voxelGrid}
+        : null,
+    }))
+  },
+
+  setPrintReady: (ready: boolean) => {
+    set((state) => ({
+      project: state.project
+        ? {...state.project, isPrintReady: ready}
         : null,
     }))
   },

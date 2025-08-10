@@ -1,17 +1,25 @@
 'use client';
 
 import { useProjectStore } from '../store/useProjectStore';
+import { usePrinterStore } from '../store/usePrinterStore';
 import { useViewerStore } from '../store/useViewerStore';
-import * as Accordion from '@radix-ui/react-accordion';
+import { getKeyframesFromObject3D } from '../utils/printingUtilities';
 import * as ScrollArea from '@radix-ui/react-scroll-area';
 import * as Separator from '@radix-ui/react-separator';
-import { ChevronDownIcon, CheckCircledIcon, CrossCircledIcon, ClockIcon } from '@radix-ui/react-icons';
+import { CheckCircledIcon, CrossCircledIcon, ClockIcon } from '@radix-ui/react-icons';
+import { Vector3, Quaternion, Euler } from 'three';
 
 export default function ProjectStateViewer() {
   const project = useProjectStore(state => state.project);
   const setValidityReport = useProjectStore(state => state.setValidityReport);
+  const setPrintReady = useProjectStore(state => state.setPrintReady);
   const selectedPartId = useViewerStore(state => state.selectedPartId);
   const selectPart = useViewerStore(state => state.selectPart);
+  
+  // Printer store actions
+  const setKeyframes = usePrinterStore(state => state.setKeyframes);
+  const play = usePrinterStore(state => state.play);
+  const isPlaying = usePrinterStore(state => state.isPlaying);
   
   const selectedPart = project?.parts.find(part => part.id === selectedPartId);
   
@@ -26,6 +34,65 @@ export default function ProjectStateViewer() {
       summary: success ? 'All checks passed' : 'Issues detected in geometry'
     };
     setValidityReport(mockReport);
+    setPrintReady(success); // Control print gate based on validation
+  };
+
+  const handleStartPrint = () => {
+    if (!project?.sceneRoot) return;
+    
+    // Extract keyframes from validated project
+    const keyframes = getKeyframesFromObject3D(project.sceneRoot);
+    if (keyframes.length > 1) {
+      setKeyframes(keyframes); // PrinterStore: Set print path
+      play(); // PrinterStore: Start printing immediately
+    } else {
+      console.warn('No valid keyframes found in project');
+    }
+  };
+
+  const renderStartPrintButton = () => {
+    // Hide start print button when already printing
+    if (!project?.validityReport?.success || !project?.isPrintReady || isPlaying) {
+      return null;
+    }
+    
+    return (
+      <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-md">
+        <div className="flex items-center justify-between">
+          <div>
+            <h5 className="text-sm font-medium text-green-800">Ready to Print</h5>
+            <p className="text-xs text-green-600">Project validated successfully</p>
+          </div>
+          <button
+            onClick={handleStartPrint}
+            className="px-4 py-2 bg-green-600 text-white text-sm rounded hover:bg-green-700 font-medium transition-colors"
+          >
+            Start Print
+          </button>
+        </div>
+      </div>
+    );
+  };
+
+  const renderPrintingStatus = () => {
+    if (!isPlaying) return null;
+    
+    return (
+      <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
+        <div className="space-y-3">
+          <div className="flex items-center space-x-2">
+            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500"></div>
+            <span className="text-sm font-medium text-blue-600">Printing in Progress</span>
+          </div>
+          <p className="text-sm text-gray-700">
+            Project is currently being printed. Validation is disabled during printing.
+          </p>
+          <div className="text-xs text-gray-500">
+            Use the floating controls at the bottom to manage the print job.
+          </div>
+        </div>
+      </div>
+    );
   };
 
   const renderPartsList = () => (
@@ -38,6 +105,17 @@ export default function ProjectStateViewer() {
           }`}
           onClick={() => selectPart(part.id)}
         >
+          <div className="flex items-center mr-3">
+            <img
+              src="/icons/cube.svg"
+              alt="Part"
+              className="w-4 h-4 text-gray-500"
+              onError={(e) => {
+                // Fallback to a simple div if icon fails to load
+                (e.target as HTMLImageElement).style.display = 'none';
+              }}
+            />
+          </div>
           <div className="flex-1">
             <div className="text-sm font-mono">
               {part.name || `Part ${index + 1}`}
@@ -45,10 +123,6 @@ export default function ProjectStateViewer() {
             <div className="text-xs text-gray-500">
               ID: {part.id.substring(0, 8)}...
             </div>
-          </div>
-          <div className="flex items-center space-x-1 text-xs">
-            {part.geometry && <span className="text-green-600">G</span>}
-            {part.material && <span className="text-blue-600">M</span>}
           </div>
         </div>
       )) || (
@@ -66,6 +140,20 @@ export default function ProjectStateViewer() {
       );
     }
 
+    // Extract transform data using Three.js utilities
+    const position = new Vector3();
+    const quaternion = new Quaternion();
+    const scale = new Vector3();
+    selectedPart.matrix.decompose(position, quaternion, scale);
+    
+    // Convert quaternion to Euler angles and then to degrees
+    const euler = new Euler().setFromQuaternion(quaternion);
+    const rotationDegrees = {
+      x: euler.x * (180 / Math.PI),
+      y: euler.y * (180 / Math.PI),
+      z: euler.z * (180 / Math.PI)
+    };
+
     return (
       <div className="p-4 space-y-4">
         <div>
@@ -75,43 +163,80 @@ export default function ProjectStateViewer() {
           <p className="text-xs text-gray-500">ID: {selectedPart.id}</p>
         </div>
 
-        <Accordion.Root type="multiple" defaultValue={['transform']}>
-          <Accordion.Item value="transform" className="border-b border-gray-200">
-            <Accordion.Header>
-              <Accordion.Trigger className="group flex w-full items-center justify-between py-3 text-left">
-                <span className="text-sm font-medium text-gray-700">Transform</span>
-                <ChevronDownIcon className="h-4 w-4 text-gray-500 transition-transform duration-200 group-data-[state=open]:rotate-180" />
-              </Accordion.Trigger>
-            </Accordion.Header>
-            <Accordion.Content className="overflow-hidden data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down">
-              <div className="pb-4 space-y-3">
-                <div>
-                  <label className="text-xs text-gray-500 uppercase mb-1 block">Position</label>
-                  <div className="grid grid-cols-3 gap-2">
-                    {['X', 'Y', 'Z'].map((axis, i) => (
-                      <div key={axis} className="space-y-1">
-                        <label className="text-xs text-gray-600">{axis}</label>
-                        <input
-                          type="number"
-                          step="0.01"
-                          value={selectedPart.matrix.elements[12 + i].toFixed(3)}
-                          readOnly
-                          className="w-full px-2 py-1.5 text-sm bg-gray-50 border border-gray-300 rounded-md text-gray-800"
-                        />
-                      </div>
-                    ))}
-                  </div>
-                </div>
+        {/* Position */}
+        <div>
+          <label className="text-xs text-gray-500 uppercase mb-2 block">Position</label>
+          <div className="grid grid-cols-3 gap-2">
+            {[
+              { label: 'X', value: position.x },
+              { label: 'Y', value: position.y },
+              { label: 'Z', value: position.z }
+            ].map(({ label, value }) => (
+              <div key={label} className="space-y-1">
+                <label className="text-xs text-gray-600">{label}</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  value={value.toFixed(3)}
+                  readOnly
+                  className="w-full px-2 py-1.5 text-sm bg-gray-50 border border-gray-300 rounded-md text-gray-800"
+                />
               </div>
-            </Accordion.Content>
-          </Accordion.Item>
-        </Accordion.Root>
+            ))}
+          </div>
+        </div>
+
+        {/* Rotation */}
+        <div>
+          <label className="text-xs text-gray-500 uppercase mb-2 block">Rotation (degrees)</label>
+          <div className="grid grid-cols-3 gap-2">
+            {[
+              { label: 'X', value: rotationDegrees.x },
+              { label: 'Y', value: rotationDegrees.y },
+              { label: 'Z', value: rotationDegrees.z }
+            ].map(({ label, value }) => (
+              <div key={label} className="space-y-1">
+                <label className="text-xs text-gray-600">{label}</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  value={value.toFixed(1)}
+                  readOnly
+                  className="w-full px-2 py-1.5 text-sm bg-gray-50 border border-gray-300 rounded-md text-gray-800"
+                />
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Scale */}
+        <div>
+          <label className="text-xs text-gray-500 uppercase mb-2 block">Scale</label>
+          <div className="grid grid-cols-3 gap-2">
+            {[
+              { label: 'X', value: scale.x },
+              { label: 'Y', value: scale.y },
+              { label: 'Z', value: scale.z }
+            ].map(({ label, value }) => (
+              <div key={label} className="space-y-1">
+                <label className="text-xs text-gray-600">{label}</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  value={value.toFixed(3)}
+                  readOnly
+                  className="w-full px-2 py-1.5 text-sm bg-gray-50 border border-gray-300 rounded-md text-gray-800"
+                />
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
     );
   };
 
   return (
-    <div className="w-full h-full flex flex-col bg-white border-l border-gray-300 select-none">
+    <div className="w-full h-screen flex flex-col bg-white border-l border-gray-300 select-none overflow-hidden">
       {/* Project Header */}
       <div className="px-4 py-3 bg-gray-100 border-b border-gray-300">
         <h3 className="font-semibold text-sm text-gray-800">
@@ -123,7 +248,7 @@ export default function ProjectStateViewer() {
       </div>
 
       {/* Parts List - 40% of height */}
-      <div className="h-[40%] flex flex-col min-h-0">
+      <div className="h-[40%] flex flex-col min-h-0 max-h-[40%] overflow-hidden">
         <div className="px-4 py-2 bg-blue-50 border-b border-gray-300">
           <h4 className="font-medium text-sm">Parts</h4>
         </div>
@@ -143,7 +268,7 @@ export default function ProjectStateViewer() {
       <Separator.Root className="bg-gray-300 data-[orientation=horizontal]:h-px" />
 
       {/* Part Details - 35% of height */}
-      <div className="h-[35%] flex flex-col min-h-0">
+      <div className="h-[35%] flex flex-col min-h-0 max-h-[35%] overflow-hidden">
         <div className="px-4 py-2 bg-blue-50 border-b border-gray-300">
           <h4 className="font-medium text-sm">Part Details</h4>
         </div>
@@ -163,42 +288,50 @@ export default function ProjectStateViewer() {
       <Separator.Root className="bg-gray-300 data-[orientation=horizontal]:h-px" />
 
       {/* Validation Section - 25% of height */}
-      <div className="h-[25%] flex flex-col min-h-0">
+      <div className="h-[25%] flex flex-col min-h-0 max-h-[25%] overflow-hidden">
         <div className="px-4 py-2 bg-blue-50 border-b border-gray-300 flex items-center justify-between">
           <h4 className="font-medium text-sm">Validation</h4>
           <button
             onClick={handleValidate}
-            disabled={!project || project.parts.length === 0}
+            disabled={!project || project.parts.length === 0 || isPlaying}
             className="px-3 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
           >
             Validate
           </button>
         </div>
-        <div className="flex-1 p-4">
-          {project?.validityReport ? (
-            <div className="space-y-3">
-              <div className="flex items-center space-x-2">
-                {project.validityReport.success ? (
-                  <CheckCircledIcon className="h-4 w-4 text-green-600" />
-                ) : (
-                  <CrossCircledIcon className="h-4 w-4 text-red-600" />
-                )}
-                <span className={`text-sm font-medium ${
-                  project.validityReport.success ? 'text-green-600' : 'text-red-600'
-                }`}>
-                  {project.validityReport.success ? 'Valid' : 'Invalid'}
-                </span>
-              </div>
-              <p className="text-sm text-gray-700">{project.validityReport.summary}</p>
-              <div className="flex items-center space-x-1 text-xs text-gray-500">
-                <ClockIcon className="h-3 w-3" />
-                <span>{project.validityReport.validatedAt.toLocaleString()}</span>
-              </div>
-            </div>
+        <div className="flex-1 p-4 overflow-y-auto">
+          {/* Show printing status when active */}
+          {isPlaying ? (
+            renderPrintingStatus()
           ) : (
-            <div className="text-sm text-gray-500 italic">
-              Click validate to check project integrity
-            </div>
+            <>
+              {project?.validityReport ? (
+                <div className="space-y-3">
+                  <div className="flex items-center space-x-2">
+                    {project.validityReport.success ? (
+                      <CheckCircledIcon className="h-4 w-4 text-green-600" />
+                    ) : (
+                      <CrossCircledIcon className="h-4 w-4 text-red-600" />
+                    )}
+                    <span className={`text-sm font-medium ${
+                      project.validityReport.success ? 'text-green-600' : 'text-red-600'
+                    }`}>
+                      {project.validityReport.success ? 'Valid' : 'Invalid'}
+                    </span>
+                  </div>
+                  <p className="text-sm text-gray-700">{project.validityReport.summary}</p>
+                  <div className="flex items-center space-x-1 text-xs text-gray-500">
+                    <ClockIcon className="h-3 w-3" />
+                    <span>{project.validityReport.validatedAt.toLocaleString()}</span>
+                  </div>
+                </div>
+              ) : (
+                <div className="text-sm text-gray-500 italic">
+                  Click validate to check project integrity
+                </div>
+              )}
+              {renderStartPrintButton()}
+            </>
           )}
         </div>
       </div>
