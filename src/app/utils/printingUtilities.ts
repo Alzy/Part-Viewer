@@ -12,7 +12,7 @@ export function getKeyframesFromObject3D(
   delta: number = 0.1
 ): Vector3[] {
   object3D.updateMatrixWorld(true);
-  
+
   const gridMap = new Map<string, Vector3>();
   let totalVertices = 0;
   let meshCount = 0;
