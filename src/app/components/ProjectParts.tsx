@@ -15,6 +15,7 @@ export default function ProjectParts() {
   const project = useProjectStore(state => state.project);
   const parts = project?.parts || [];
   const viewMode = useViewerStore(state => state.viewMode);
+  const selectPart = useViewerStore(state => state.selectPart);
   const selectedPartId = useViewerStore(state => state.selectedPartId);
   const showStressData = useViewerStore(state => state.showStressData);
   const stressDataViewMode = useViewerStore(state => state.stressDataViewMode);
@@ -107,6 +108,18 @@ export default function ProjectParts() {
                   mesh.geometry = result.geometry;
                 }
               }
+            }}
+              onClick={(event) => {
+              event.stopPropagation();
+              selectPart(part.id);
+              console.log(`selected part ${part.id}`);
+            }}
+            onPointerOver={(event) => {
+              event.stopPropagation();
+              document.body.style.cursor = 'pointer';
+            }}
+            onPointerOut={() => {
+              document.body.style.cursor = 'default';
             }}
           />
         );
