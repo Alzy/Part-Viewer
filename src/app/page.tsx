@@ -8,6 +8,7 @@ import DefaultSceneBackdrop from './components/DefaultSceneBackdrop';
 import ProjectParts from './components/ProjectParts';
 import RobotArm from './components/RobotArm';
 import KeyframeVisualizer from './components/KeyframeVisualizer';
+import PrinterControls from './components/PrinterControls';
 import {usePrinterStore} from './store/usePrinterStore';
 import {loadProjectFile} from './utils/fileLoader';
 import {getKeyframesFromObject3D} from './utils/printingUtilities';
@@ -20,16 +21,14 @@ export default function Home() {
   const project = useProjectStore(state => state.project);
   const [isLoadingProject, setIsLoadingProject] = useState(false);
   
-  // Get printer state from store
-  const keyframes = usePrinterStore(state => state.keyframes);
-  const currentTarget = usePrinterStore(state => state.currentTarget);
-  const setIsPlaying = usePrinterStore(state => state.setIsPlaying);
+  // Get printer actions from store
   const setKeyframes = usePrinterStore(state => state.setKeyframes);
+  const play = usePrinterStore(state => state.play);
   
   // Start animation when component mounts
   useEffect(() => {
-    setIsPlaying(true);
-  }, [setIsPlaying]);
+    play();
+  }, [play]);
 
   const loadDefaultProject = async () => {
     if (isLoadingProject || project) return;
@@ -132,8 +131,6 @@ export default function Home() {
           <ProjectParts />
           <RobotArm position={[5, 0, 0]} />
           <KeyframeVisualizer
-            keyframes={keyframes}
-            currentTarget={currentTarget}
             showKeyframes={true}
             showCurrentTarget={true}
           />
@@ -143,8 +140,13 @@ export default function Home() {
       </div>
 
       {/* Sidebar */}
-      <div className="flex-1">
-        <ProjectStateViewer />
+      <div className="flex-1 flex flex-col">
+        <div className="flex-1">
+          <ProjectStateViewer />
+        </div>
+        <div className="p-4">
+          <PrinterControls />
+        </div>
       </div>
 
       {/* Loading Overlay */}

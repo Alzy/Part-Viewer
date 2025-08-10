@@ -6,7 +6,7 @@ import {useGLTF} from '@react-three/drei';
 import {Group, Mesh, Skeleton, SkinnedMesh} from 'three';
 import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
 import {SimpleTwoBoneIK} from '../utils/simpleTwoBoneIK';
-import {usePrinterStore} from '../store/usePrinterStore';
+import {printerAnimationController} from '../controllers/PrinterAnimationController';
 
 interface RobotArmProps {
   position?: [number, number, number];
@@ -20,13 +20,7 @@ const RobotArm: React.FC<RobotArmProps> = ({
   scale = [1, 1, 1]
 }) => {
   const groupRef = useRef<Group>(null);
-  const [ikSolver, setIkSolver] = useState<SimpleTwoBoneIK | null>(null);
   const [skeleton, setSkeleton] = useState<Skeleton | null>(null);
-  
-  // Get printer state from store
-  const currentTarget = usePrinterStore(state => state.currentTarget);
-  const isPlaying = usePrinterStore(state => state.isPlaying);
-  const updateProgress = usePrinterStore(state => state.updateProgress);
   
   // Load GLTF model
   const gltf = useGLTF('/robo-arm.glb');
@@ -65,23 +59,20 @@ const RobotArm: React.FC<RobotArmProps> = ({
           middleBoneName: 'Elbow',
           endBoneName: 'Effector'
         });
-        setIkSolver(solver);
+        printerAnimationController.initialize(solver);
       } catch (error) {
         console.error('Failed to initialize IK solver:', error);
       }
     }
   }, [clonedScene]);
 
-  // IK solving and progress updates
+  // Pure animation loop - matches R3F's internal render loop pattern
   useFrame((state, delta) => {
-    if (ikSolver && skeleton) {
-      // Update printer progress if playing
-      if (isPlaying) {
-        updateProgress(delta);
-      }
+    if (skeleton) {
+      // Update animation controller
+      printerAnimationController.update(delta);
       
-      // Solve IK for current target
-      ikSolver.solve(currentTarget);
+      // Update skeleton bones
       skeleton.bones[0].updateMatrixWorld(true);
     }
   });
