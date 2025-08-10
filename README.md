@@ -10,6 +10,7 @@ A lightweight CAD model viewer built with modern web tools. Designed for easy pa
 - View parts in a simple outliner panel
 - Toggle between shaded and wireframe views
 - Perform a dummy "Send to Validation" task
+- Simulate a dummy printing job
 
 ## Tech Stack
 
@@ -52,3 +53,5 @@ This project uses [`next/font`](https://nextjs.org/docs/app/building-your-applic
 1. Drag and drop an obj, stl, or glb onto the viewport
 2. Change viewport shading by selecting one of the three options at the top right of viewport
 3. Press "Validate" on the bottom right to triggure a dummy 'stress' simulation
+4. If validation fails, repress validate until success (validation is dummy data for demo purposes)
+5. Press "Print" to start the '3D print'
