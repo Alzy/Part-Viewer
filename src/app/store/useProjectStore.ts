@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import {Matrix4, BufferGeometry, Material, Object3D} from "three";
 import {SimpleVoxelGrid} from "@/app/utils/simpleVoxelGrid";
+import Octree from "@/app/utils/octree/octree";
 
 type Part = {
   id: string
@@ -22,6 +23,7 @@ type Project = {
   parts: Part[]
   validityReport: ValidityReport | null
   voxelGrid: SimpleVoxelGrid | null
+  octree: Octree | null
   sceneRoot: Object3D | null
   isPrintReady: boolean
 }
@@ -34,6 +36,7 @@ type ProjectStore = {
   updatePartMatrix: (partId: string, newMatrix: Matrix4) => void
   setValidityReport: (report: ValidityReport) => void
   setVoxelGrid: (voxelGrid: SimpleVoxelGrid) => void
+  setOctree: (octree: Octree) => void
   setPrintReady: (ready: boolean) => void
   resetProject: () => void
 }
@@ -47,6 +50,7 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
       parts,
       validityReport: null,
       voxelGrid: null,
+      octree: null,
       sceneRoot,
       isPrintReady: false,
     },
@@ -85,6 +89,14 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
     set((state) => ({
       project: state.project
         ? {...state.project, voxelGrid: voxelGrid}
+        : null,
+    }))
+  },
+
+  setOctree: (octree: Octree) => {
+    set((state) => ({
+      project: state.project
+        ? {...state.project, octree: octree}
         : null,
     }))
   },

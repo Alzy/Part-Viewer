@@ -14,10 +14,13 @@ import {usePrinterStore} from './store/usePrinterStore';
 import {loadProjectFile} from './utils/fileLoader';
 import ViewportShadingSelector from "@/app/components/ViewportShadingSelector";
 import {SimpleVoxelGrid} from "@/app/utils/simpleVoxelGrid";
+import OctreeViewer from "@/app/components/OctreeViewer";
+import Octree from "@/app/utils/octree/octree";
 
 export default function Home() {
   const loadProject = useProjectStore(state => state.loadProject);
   const setVoxelGrid = useProjectStore(state => state.setVoxelGrid);
+  const setOctree = useProjectStore(state => state.setOctree);
   const project = useProjectStore(state => state.project);
   const [isLoadingProject, setIsLoadingProject] = useState(false);
   
@@ -42,8 +45,10 @@ export default function Home() {
       // Load our default file.
       const loadedProject = await loadProjectFile('/new-project.glb');
       const _voxelGrid = new SimpleVoxelGrid(loadedProject.sceneRoot);
+      const _octree = Octree.fromThreeScene(loadedProject.sceneRoot); // Max depth of 6 for performance
       loadProject(loadedProject.name, loadedProject.parts, loadedProject.sceneRoot);
       setVoxelGrid(_voxelGrid);
+      setOctree(_octree);
     } catch (error) {
       console.error('Failed to load default project:', error);
       loadProject('Blank Project', [], new Object3D()); // Fallback to blank project on error
@@ -100,7 +105,9 @@ export default function Home() {
       const projectName = file.name.replace(/\.[^/.]+$/, ''); // Remove extension
       loadProject(projectName, loadedProject.parts, loadedProject.sceneRoot);
       const _voxelGrid = new SimpleVoxelGrid(loadedProject.sceneRoot);
+      const _octree = Octree.fromThreeScene(loadedProject.sceneRoot);
       setVoxelGrid(_voxelGrid);
+      setOctree(_octree);
 
       console.log(`Successfully loaded project: ${projectName}`);
     } catch (error) {
@@ -130,6 +137,15 @@ export default function Home() {
         >
           <DefaultSceneBackdrop />
           <ProjectParts />
+
+          {/* Show octree visualization when project is loaded */}
+          {project?.octree && (
+            <OctreeViewer
+              octree={project.octree}
+              wireframe={true}
+              opacity={0.333}
+            />
+          )}
 
           {isPlaying && <>
             <RobotArm position={[5, 0, 0]} />
