@@ -8,8 +8,8 @@ import {
   Object3D,
   Vector3,
 } from 'three';
-import Octree from '../utils/octree/octree';
-import OctreeNode from '../utils/octree/octreeNode';
+import Octree from '../utils/spatialAcceleration/octree/octree';
+import OctreeNode from '../utils/spatialAcceleration/octree/octreeNode';
 
 interface OctreeViewerProps {
   octree: Octree;

@@ -1,5 +1,6 @@
 import OctreeNode from "./octreeNode";
-import {Box3, Mesh, Object3D, Vector3} from "three";
+import {Box3, Object3D} from "three";
+import {getSceneFaceList, Face} from "../../meshUtils";
 
 export enum TraversalMode {depthFirst, breadthFirst}
 
@@ -54,69 +55,40 @@ export default class Octree {
     }
   }
 
-  static fromThreeScene(modelRoot: Object3D, maxDepth = 8): Octree {
+  static fromThreeScene(modelRoot: Object3D, maxDepth = 6): Octree {
+    const startTime = performance.now();
+    
     const bounds = new Box3().setFromObject(modelRoot, true);
     const octree = new Octree(bounds, maxDepth);
 
-    // Collect center world position for each face in scene
-    const faceCenters: Vector3[] = [];
-    modelRoot.traverse((object: Object3D) => {
-      if (object instanceof Mesh) {
-        const mesh = object as Mesh;
-        const geometry = mesh.geometry;
-        const index = geometry.getIndex();
+    // Get all faces from the scene
+    const faces = getSceneFaceList(modelRoot);
+    const faceExtractionTime = performance.now();
 
-        // Get position attribute
-        const positionAttribute = geometry.getAttribute('position');
-        if (!positionAttribute || !index) return;
-
-        // Create a temporary vector for world position calculation
-        const worldPosition = new Vector3();
-        const localPosition = new Vector3();
-
-        const faceBounds = new Box3();
-        const faceWorldPositions = [new Vector3(), new Vector3(), new Vector3()];
-
-        // Iterate through all face vertices
-        for (let i = 0; i < index.count; i += 3) {
-          const a = index.getX(i);
-          const b = index.getX(i + 1);
-          const c = index.getX(i + 2);
-
-          // get all world positions for each vertex in face
-          const vA = localPosition.fromBufferAttribute(positionAttribute, a);
-          worldPosition.copy(vA);
-          mesh.localToWorld(worldPosition);
-          faceWorldPositions[0].copy(worldPosition);
-          const vB = localPosition.fromBufferAttribute(positionAttribute, b);
-          worldPosition.copy(vB);
-          mesh.localToWorld(worldPosition);
-          faceWorldPositions[1].copy(worldPosition);
-          const vC = localPosition.fromBufferAttribute(positionAttribute, c);
-          worldPosition.copy(vC);
-          mesh.localToWorld(worldPosition);
-          faceWorldPositions[2].copy(worldPosition);
-
-          // store center world position of face
-          const center = new Vector3();
-          faceBounds.setFromPoints(faceWorldPositions).getCenter(center);
-          faceCenters.push(center);
-        }
-      }
-    });
-
-    for (const faceCenter of faceCenters) {
+    // Build octree by subdividing nodes that intersect with face bounds
+    for (const face of faces) {
       octree.traverse((node: OctreeNode) => {
         if (node.depth >= maxDepth) return true;
 
-        if (node.isLeaf() && node.containsPoint(faceCenter)) {
+        if (node.isLeaf() && node.bounds.intersectsBox(face.bounds)) {
           node.subdivide();
           return true;
         }
 
         return false;
-      }, octree.rootNode)
+      }, octree.rootNode);
     }
+
+    const endTime = performance.now();
+    const totalTime = endTime - startTime;
+    const subdivisionTime = endTime - faceExtractionTime;
+    
+    console.log(`Octree construction completed:
+      - Total time: ${totalTime.toFixed(2)}ms
+      - Face extraction: ${(faceExtractionTime - startTime).toFixed(2)}ms
+      - Subdivision: ${subdivisionTime.toFixed(2)}ms
+      - Faces processed: ${faces.length}
+      - Max depth: ${maxDepth}`);
 
     return octree;
   }
