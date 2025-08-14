@@ -1,4 +1,4 @@
-import OctreeNode from "@/app/utils/octree/octreeNode";
+import OctreeNode from "./octreeNode";
 import {Box3, Mesh, Object3D, Vector3} from "three";
 
 export enum TraversalMode {depthFirst, breadthFirst}

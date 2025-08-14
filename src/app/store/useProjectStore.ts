@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import {Matrix4, BufferGeometry, Material, Object3D} from "three";
 import {SimpleVoxelGrid} from "@/app/utils/simpleVoxelGrid";
-import Octree from "@/app/utils/octree/octree";
+import Octree from "@/app/utils/spatialAcceleration/octree/octree";
 
 type Part = {
   id: string

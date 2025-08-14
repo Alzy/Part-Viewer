@@ -15,7 +15,7 @@ import {loadProjectFile} from './utils/fileLoader';
 import ViewportShadingSelector from "@/app/components/ViewportShadingSelector";
 import {SimpleVoxelGrid} from "@/app/utils/simpleVoxelGrid";
 import OctreeViewer from "@/app/components/OctreeViewer";
-import Octree from "@/app/utils/octree/octree";
+import Octree from "@/app/utils/spatialAcceleration/octree/octree";
 
 export default function Home() {
   const loadProject = useProjectStore(state => state.loadProject);
